@@ -5,7 +5,7 @@ from pyrogram import filters
 from AloneRobot import pbot as alone
 
 
-API_BASE = "http://45.77.174.241:9090"
+API_BASE = "https://nexacoders-nexa-api.hf.space"
 
 # simple in-memory toggle system (NO DATABASE REQUIRED)
 NSFW_CHAT = set()
