@@ -1,8 +1,9 @@
 import html
 import json
 import re
-from time import sleep
 import requests
+from typing import Optional
+
 from telegram import (
     CallbackQuery,
     Chat,
@@ -22,7 +23,8 @@ from telegram.ext import (
 from telegram.utils.helpers import mention_html
 
 import AloneRobot.modules.sql.chatbot_sql as sql
-from AloneRobot import BOT_ID, BOT_NAME, BOT_USERNAME, dispatcher,CHATBOT_API
+from AloneRobot import BOT_ID, BOT_NAME, BOT_USERNAME, dispatcher
+
 from AloneRobot.modules.helper_funcs.chat_status import user_admin, user_admin_no_reply
 from AloneRobot.modules.log_channel import gloggable
 
@@ -33,24 +35,16 @@ def alonerm(update: Update, context: CallbackContext) -> str:
     query: Optional[CallbackQuery] = update.callback_query
     user: Optional[User] = update.effective_user
     match = re.match(r"rm_chat\((.+?)\)", query.data)
+
     if match:
-        user_id = match.group(1)
         chat: Optional[Chat] = update.effective_chat
-        is_alone = sql.set_alone(chat.id)
-        if is_alone:
-            is_alone = sql.set_alone(user_id)
-            return (
-                f"<b>{html.escape(chat.title)}:</b>\n"
-                f"ᴀɪ ᴅɪꜱᴀʙʟᴇᴅ\n"
-                f"<b>ᴀᴅᴍɪɴ :</b> {mention_html(user.id, html.escape(user.first_name))}\n"
-            )
-        else:
-            update.effective_message.edit_text(
-                "{} ᴄʜᴀᴛʙᴏᴛ ᴅɪsᴀʙʟᴇᴅ ʙʏ {}.".format(
-                    dispatcher.bot.first_name, mention_html(user.id, user.first_name)
-                ),
-                parse_mode=ParseMode.HTML,
-            )
+        sql.set_alone(chat.id)
+
+        return (
+            f"<b>{html.escape(chat.title)}:</b>\n"
+            f"ᴀɪ ᴅɪsᴀʙʟᴇᴅ\n"
+            f"<b>ᴀᴅᴍɪɴ :</b> {mention_html(user.id, html.escape(user.first_name))}\n"
+        )
 
     return ""
 
@@ -61,24 +55,16 @@ def aloneadd(update: Update, context: CallbackContext) -> str:
     query: Optional[CallbackQuery] = update.callback_query
     user: Optional[User] = update.effective_user
     match = re.match(r"add_chat\((.+?)\)", query.data)
+
     if match:
-        user_id = match.group(1)
         chat: Optional[Chat] = update.effective_chat
-        is_alone = sql.rem_alone(chat.id)
-        if is_alone:
-            is_alone = sql.rem_alone(user_id)
-            return (
-                f"<b>{html.escape(chat.title)}:</b>\n"
-                f"ᴀɪ ᴇɴᴀʙʟᴇ\n"
-                f"<b>ᴀᴅᴍɪɴ :</b> {mention_html(user.id, html.escape(user.first_name))}\n"
-            )
-        else:
-            update.effective_message.edit_text(
-                "{} ᴄʜᴀᴛʙᴏᴛ ᴇɴᴀʙʟᴇᴅ ʙʏ {}.".format(
-                    dispatcher.bot.first_name, mention_html(user.id, user.first_name)
-                ),
-                parse_mode=ParseMode.HTML,
-            )
+        sql.rem_alone(chat.id)
+
+        return (
+            f"<b>{html.escape(chat.title)}:</b>\n"
+            f"ᴀɪ ᴇɴᴀʙʟᴇᴅ\n"
+            f"<b>ᴀᴅᴍɪɴ :</b> {mention_html(user.id, html.escape(user.first_name))}\n"
+        )
 
     return ""
 
@@ -86,17 +72,18 @@ def aloneadd(update: Update, context: CallbackContext) -> str:
 @user_admin
 @gloggable
 def alone(update: Update, context: CallbackContext):
-    message = update.effective_message
-    msg = "• ᴄʜᴏᴏsᴇ ᴀɴ ᴏᴩᴛɪᴏɴ ᴛᴏ ᴇɴᴀʙʟᴇ/ᴅɪsᴀʙʟᴇ ᴄʜᴀᴛʙᴏᴛ"
+    msg = "• ᴄʜᴏᴏsᴇ ᴏᴘᴛɪᴏɴ ᴛᴏ ᴇɴᴀʙʟᴇ/ᴅɪsᴀʙʟᴇ ᴄʜᴀᴛʙᴏᴛ"
+
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(text="ᴇɴᴀʙʟᴇ", callback_data="add_chat({})"),
-                InlineKeyboardButton(text="ᴅɪsᴀʙʟᴇ", callback_data="rm_chat({})"),
-            ],
+                InlineKeyboardButton("ᴇɴᴀʙʟᴇ", callback_data="add_chat(1)"),
+                InlineKeyboardButton("ᴅɪsᴀʙʟᴇ", callback_data="rm_chat(1)"),
+            ]
         ]
     )
-    message.reply_text(
+
+    update.effective_message.reply_text(
         text=msg,
         reply_markup=keyboard,
         parse_mode=ParseMode.HTML,
@@ -104,48 +91,74 @@ def alone(update: Update, context: CallbackContext):
 
 
 def alone_message(context: CallbackContext, message):
+    if not message.text:
+        return False
+
+    text = message.text.lower()
     reply_message = message.reply_to_message
-    if message.text.lower() == "alone":
+
+    if text == "alone":
         return True
-    elif BOT_USERNAME in message.text.upper():
+
+    if BOT_USERNAME.lower() in text:
         return True
-    elif reply_message:
+
+    if reply_message and reply_message.from_user:
         if reply_message.from_user.id == BOT_ID:
             return True
-    else:
-        return False
+
+    return False
+
+
+OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_KEY = "sk-or-your-key-here"
+
+
+def get_ai_reply(text: str):
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": "mistralai/mistral-7b-instruct",
+        "messages": [{"role": "user", "content": text}],
+    }
+
+    try:
+        res = requests.post(OPENROUTER_API, headers=headers, json=payload, timeout=10)
+        data = res.json()
+        return data["choices"][0]["message"]["content"]
+    except:
+        return "⚠️ AI is currently unavailable."
 
 
 def chatbot(update: Update, context: CallbackContext):
     message = update.effective_message
     chat_id = update.effective_chat.id
-    bot = context.bot
-    is_alone = sql.is_alone(chat_id)
-    if is_alone:
+
+    if sql.is_alone(chat_id):
         return
 
-    if message.text and not message.document:
-        if not alone_message(context, message):
-            return
-        bot.send_chat_action(chat_id, action="typing")
-        url=f"https://alonexrobot.vercel.app/api/apikey={CHATBOT_API}/group-controller/alone/message={message.text}"
-        response = requests.get(url)
-        out= await response.json()
-        reply=out["reply"]
-        message.reply_text(reply)
+    if not alone_message(context, message):
+        return
 
+    context.bot.send_chat_action(chat_id, action="typing")
 
+    reply = get_ai_reply(message.text)
 
-
-
+    message.reply_text(reply)
 
 
 CHATBOTK_HANDLER = CommandHandler("chatbot", alone, run_async=True)
 ADD_CHAT_HANDLER = CallbackQueryHandler(aloneadd, pattern=r"add_chat", run_async=True)
 RM_CHAT_HANDLER = CallbackQueryHandler(alonerm, pattern=r"rm_chat", run_async=True)
+
 CHATBOT_HANDLER = MessageHandler(
     Filters.text
-    & (~Filters.regex(r"^#[^\s]+") & ~Filters.regex(r"^!") & ~Filters.regex(r"^\/")),
+    & (~Filters.regex(r"^#[^\s]+"))
+    & (~Filters.regex(r"^!"))
+    & (~Filters.regex(r"^/")),
     chatbot,
     run_async=True,
 )
@@ -160,4 +173,4 @@ __handlers__ = [
     CHATBOTK_HANDLER,
     RM_CHAT_HANDLER,
     CHATBOT_HANDLER,
-]
+    ]
