@@ -1,22 +1,23 @@
 """
-play.py — Pyrogram + PyTgCalls handlers for /play and friends.
-Usage in your bot main:
-    from pyrogram import Client
-    from pytgcalls import PyTgCalls
-    from play import register
-    app = Client("bot", api_id=..., api_hash="...", bot_token="...")
-    assistant = Client("assistant", api_id=..., api_hash="...",
-                       session_string="...")
-    calls = PyTgCalls(assistant)
-    register(app, assistant, calls)
-    assistant.start(); calls.start(); app.run()
+Streams audio in Telegram voice chats using the user-account session
+defined as STRING_SESSION in AloneRobot/config.py. The bot (Pyrogram
+Client) handles commands; the assistant (user client built from
+STRING_SESSION) joins the VC and pipes audio via PyTgCalls.
+Run with:
+    python -m AloneRobot          # or however your project boots
+    # ensure AloneRobot/config.py exposes:
+    #   API_ID, API_HASH, BOT_TOKEN, STRING_SESSION
+    # and optionally LOG_GROUP_ID
+Requirements:
+    pip install pyrogram tgcrypto py-tgcalls yt-dlp aiohttp
+    apt install ffmpeg
 """
 from __future__ import annotations
 import asyncio
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Deque, Optional
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -33,6 +34,30 @@ except ImportError as e:  # pragma: no cover
     ) from e
 from youtube import yt, YouTubeAPIError
 from AloneRobot import pbot as alone
+import logging 
+
+from AloneRobot.config import (
+    API_ID,
+    API_HASH,
+    BOT_TOKEN,
+    STRING_SESSION,
+)
+try:
+    from AloneRobot.config import LOG_GROUP_ID  # optional
+except Exception:
+    LOG_GROUP_ID = 0
+
+from AloneRobot.config import (
+    API_ID,
+    API_HASH,
+    TOKEN,
+    STRING_SESSION,
+)
+try:
+    from AloneRobot.config import LOG_GROUP_ID  # optional
+except Exception:
+    LOG_GROUP_ID = 
+    
 # ───────────────────── queue ─────────────────────
 @dataclass
 class Track:
