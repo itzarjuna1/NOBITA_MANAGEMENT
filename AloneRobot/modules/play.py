@@ -32,7 +32,7 @@ except ImportError as e:  # pragma: no cover
         "py-tgcalls is required. Install with: pip install py-tgcalls"
     ) from e
 from youtube import yt, YouTubeAPIError
-from 
+from AloneRobot import pbot as alone
 # ───────────────────── queue ─────────────────────
 @dataclass
 class Track:
@@ -126,25 +126,25 @@ def register(app: Client, assistant: Client, calls: PyTgCalls) -> None:
             await _play_track(calls, app, t)
         except Exception as e:
             await m.reply(f"❌ Failed to start stream: {e}")
-    @app.on_message(filters.command("pause") & ~filters.private)
+    @alone.on_message(filters.command("pause") & ~filters.private)
     async def _pause(_, m: Message):
         try: await calls.pause_stream(m.chat.id); await m.reply("⏸ Paused")
         except Exception as e: await m.reply(f"❌ {e}")
-    @app.on_message(filters.command("resume") & ~filters.private)
+    @alone.on_message(filters.command("resume") & ~filters.private)
     async def _resume(_, m: Message):
         try: await calls.resume_stream(m.chat.id); await m.reply("▶️ Resumed")
         except Exception as e: await m.reply(f"❌ {e}")
-    @app.on_message(filters.command(["skip", "next"]) & ~filters.private)
+    @alone.on_message(filters.command(["skip", "next"]) & ~filters.private)
     async def _skip(_, m: Message):
         await _advance(app, calls, m.chat.id, notice_to=m)
-    @app.on_message(filters.command(["stop", "end", "leave"]) & ~filters.private)
+    @alone.on_message(filters.command(["stop", "end", "leave"]) & ~filters.private)
     async def _stop(_, m: Message):
         _queues[m.chat.id].clear()
         _current.pop(m.chat.id, None)
         try: await calls.leave_call(m.chat.id)
         except Exception: pass
         await m.reply("⏹ Stopped & cleared queue.")
-    @app.on_message(filters.command("queue") & ~filters.private)
+    @alone.on_message(filters.command("queue") & ~filters.private)
     async def _queue(_, m: Message):
         q = _queues[m.chat.id]
         cur = _current.get(m.chat.id)
@@ -156,7 +156,7 @@ def register(app: Client, assistant: Client, calls: PyTgCalls) -> None:
         for i, t in enumerate(q, 1):
             lines.append(f"{i}. {t.title} — {_fmt_time(t.duration)}")
         await m.reply("\n".join(lines))
-    @app.on_callback_query(filters.regex(r"^pp:(pause|resume|skip|stop|close):(-?\d+)$"))
+    @alone.on_callback_query(filters.regex(r"^pp:(pause|resume|skip|stop|close):(-?\d+)$"))
     async def _btn(_, cq: CallbackQuery):
         action, chat_id = cq.matches[0].group(1), int(cq.matches[0].group(2))
         try:
