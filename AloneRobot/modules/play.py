@@ -45,7 +45,7 @@ from AloneRobot.config import (
 try:
     from AloneRobot.config import LOG_GROUP_ID  # optional
 except Exception:
-    LOG_GROUP_ID = 0
+    LOG_GROUP_ID = -1003882647583
 
 from AloneRobot.config import (
     API_ID,
